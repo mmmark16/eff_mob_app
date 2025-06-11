@@ -39,7 +39,7 @@ class _FavoritePageState extends State<FavoritePage> {
                 key: UniqueKey(),
                 onDismissed: (direction) {
                   box.deleteAt(index);
-                  allHeroes[res!.id!-1].favorite = false;
+                  allHeros[res!.id!-1].favorite = false;
                 },
                 child: FavoriteCard(image: res!.image!, name: res!.name!, gender: res!.gender!, favorite: res!.favorite!, id: res!.id!),
               );

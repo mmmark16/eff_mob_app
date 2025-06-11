@@ -11,7 +11,6 @@ Future<void> main() async {
   await Hive.initFlutter();
   Hive.registerAdapter(HeroModelAdapter());
   var box = await Hive.openBox<HeroModel>('favHero');
-  var cashbox = await Hive.openBox<HeroModel>('cashHero');
   runApp(const MyApp());
 }
 

@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:eff_mob_app/models/hero_model.dart';
 import 'package:eff_mob_app/services/services.dart';
 import 'package:flutter/material.dart';
-import 'package:hive/hive.dart';
 import 'package:infinite_scroll_pagination/infinite_scroll_pagination.dart';
 import '../global.dart';
 import '../widgets/hero_card.dart';
@@ -26,43 +25,11 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _pageNumber = 1;
-    allHeroes = [];
+    allHeros = [];
     _isLastPage = false;
     _loading = true;
     _error = false;
-    _loadHeroes();
-    //getHeros();
-  }
-  // Функция для загрузки данных (сначала из API, потом из Hive)
-  Future<void> _loadHeroes() async {
-    setState(() {
-      _loading = true;
-      _error = false;
-    });
-    try {
-      // Пытаемся загрузить данные из API
-      await getHeros();
-    } catch (e) {
-      print('Error loading data from API: $e');
-      // Если не удалось загрузить данные из API, загружаем из Hive
-      List<HeroModel> cachedHeroes = await getHeroesFromHive(_pageNumber);
-      if (cachedHeroes.isNotEmpty) {
-        setState(() {
-          allHeroes = cachedHeroes;
-          _loading = false;
-          _error = false;
-          _isLastPage = true;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Данные загружены из кеша')),
-          );
-        });
-      } else {
-        setState(() {
-          _loading = false;
-          _error = true;
-        });
-      }
-    }
+    getHeros();
   }
 
   Future getHeros() async {
@@ -76,14 +43,11 @@ class _HomePageState extends State<HomePage> {
         allPageHero = List<HeroModel>.from(
           _json['results'].map((model) => HeroModel.fromJson(model)),
         );
-
         setState(() {
           _isLastPage = allPageHero.length < _numberOfPostsPerRequest;
           _loading = false;
           _pageNumber = _pageNumber + 1;
-          allHeroes.addAll(allPageHero);
-          saveHeroesToHive(allHeroes, _pageNumber); // Сохраняем с учетом номера страницы
-          _pageNumber++; // Увеличиваем номер страницы
+          allHeros.addAll(allPageHero);
         });
         return "success";
       }
@@ -100,22 +64,6 @@ class _HomePageState extends State<HomePage> {
       });
       return "error" + (e.message ?? "");
     }
-  }
-
-  // Функция для сохранения списка HeroModel в Hive (с учетом страницы)
-  Future<void> saveHeroesToHive(List<HeroModel> heroes, int pageNumber) async {
-    final box = Hive.box<HeroModel>('heroesBox');
-    final key = 'page_$pageNumber'; // Ключ для каждой страницы
-    await box.put(key, heroes); // Сохраняем данные для конкретной страницы
-  }
-
-  // Функция для получения списка HeroModel из Hive (с учетом страницы)
-  Future<List<HeroModel>> getHeroesFromHive(int pageNumber) async {
-    final box = Hive.box<HeroModel>('heroesBox');
-    final key = 'page_$pageNumber'; // Ключ для конкретной страницы
-    final List<HeroModel>? heroes = box.get(key); // Получаем данные по ключу
-
-    return heroes ?? [];
   }
 
   Widget errorDialog({required double size}) {
@@ -151,6 +99,7 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -161,10 +110,11 @@ class _HomePageState extends State<HomePage> {
       body: buildPostsView(),
     );
   }
+
   Widget buildPostsView() {
     final double setWidth = MediaQuery.of(context).size.width / 2.3;
     final double setHeight = MediaQuery.of(context).size.height / 2.5;
-    if (allHeroes.isEmpty) {
+    if (allHeros.isEmpty) {
       if (_loading) {
         return const Center(
           child: Padding(
@@ -181,12 +131,15 @@ class _HomePageState extends State<HomePage> {
         childAspectRatio: (setWidth / setHeight),
         crossAxisCount: 2,
       ),
-      itemCount: allHeroes.length + (_isLastPage ? 0 : 1),
+      itemCount: allHeros.length + (_isLastPage ? 0 : 1),
       itemBuilder: (context, index) {
-        if (index == allHeroes.length - _nextPageTrigger) {
+        // request more data when the user has reached the trigger point.
+        if (index == allHeros.length - _nextPageTrigger) {
           getHeros();
         }
-        if (index == allHeroes.length) {
+        // when the user gets to the last item in the list, check whether
+        // there is an error, otherwise, render a progress indicator.
+        if (index == allHeros.length) {
           if (_error) {
             return Center(child: errorDialog(size: 15));
           } else {
@@ -198,7 +151,7 @@ class _HomePageState extends State<HomePage> {
             );
           }
         }
-        final HeroModel hero = allHeroes[index];
+        final HeroModel hero = allHeros[index];
         return Padding(
           padding: const EdgeInsets.all(15.0),
           child: HeroCard(

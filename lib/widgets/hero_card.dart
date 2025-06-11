@@ -52,7 +52,7 @@ class _HeroCardState extends State<HeroCard> {
                     onPressed: () async {
                       if (widget.favorite == false) {
                         widget.favorite = true;
-                        allHeroes[widget.id - 1].favorite = true;
+                        allHeros[widget.id - 1].favorite = true;
                         final box = Boxes.getHero();
                         box.add(
                           HeroModel(

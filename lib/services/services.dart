@@ -14,7 +14,6 @@ Future getHero() async{
       allPageHero = List<HeroModel>.from(
           _json['results'].map((model) => HeroModel.fromJson(model)));
 
-      await saveHeroesToHive(allPageHero);
       return "success";
     }
   } on DioException catch (e) {
@@ -24,18 +23,4 @@ Future getHero() async{
         e.message.toString());
     return "error" + (e.message ?? "");
   }
-}
-
-
-// Функция для сохранения списка HeroModel в Hive
-Future<void> saveHeroesToHive(List<HeroModel> heroes) async {
-  final box = Hive.box<HeroModel>('cashHero');
-  await box.clear(); // Очищаем бокс перед сохранением новых данных
-  await box.addAll(heroes);
-}
-
-// Функция для получения списка HeroModel из Hive
-Future<List<HeroModel>> getHeroesFromHive() async {
-  final box = Hive.box<HeroModel>('cashHero');
-  return box.values.toList();
 }
